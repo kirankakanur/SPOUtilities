@@ -28,7 +28,7 @@ namespace SPOUtilities
         {
             string options = "";
             string RunMode = "";
-            
+            Console.WriteLine("=== SharePoint Online Utilities ===");
             Console.WriteLine();
             Console.WriteLine("What would you like to do?");
             if (string.IsNullOrEmpty(RunMode))
