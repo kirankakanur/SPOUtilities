@@ -19,9 +19,16 @@ Install-Package Microsoft.SharePointOnline.CSOM
 
 2. Add references to System.Web and System.Configuration assemblies.
 
-3. Update <appSettings> section in App.config file with your SPO information.
+3. Update <appSettings> section in 'App.config' file with your SharePoint Online information.
 
   
 Feel free to send your questions/comments to kkakanur@rightpoint.com
+
+I am proud to be working for a values-led intrapreneurial organization, Rightpoint - https://www.rightpoint.com/company 
+
+We believe in the spirit of Makers. 
+
+We are based out of Chicago, with offices in Atlanta, Boston, Dallas, Denver, Detroit, Los Angeles, New York, and Jaipur (India).
+We’re driven by innovation, rooted in technology, relentlessly curious and celebrating our 10th anniversary.  
 
 
