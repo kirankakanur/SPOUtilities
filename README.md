@@ -14,7 +14,7 @@ I will be adding more utilities, and will share them.
 
 To use this:
 
-1. Make sure to add the latest SharePoint Online CSOM package to the project. The NuGet command to install the package is shown below:
+1. Make sure to add the latest SharePoint Online CSOM package to the project. The NuGet command to install the package is:
 Install-Package Microsoft.SharePointOnline.CSOM
 
 2. Add references to System.Web and System.Configuration assemblies.
