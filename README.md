@@ -19,7 +19,7 @@ Install-Package Microsoft.SharePointOnline.CSOM
 
 2. Add references to System.Web and System.Configuration assemblies.
 
-3. Update <appSettings> section in 'App.config' file with your SharePoint Online information.
+3. Update appSettings section in 'App.config' file with your SharePoint Online information.
 
   
 Feel free to send your questions/comments to kkakanur@rightpoint.com
