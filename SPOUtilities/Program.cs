@@ -31,7 +31,6 @@ namespace SPOUtilities
             Console.WriteLine("=== SharePoint Online Utilities ===");
             Console.WriteLine();
             Console.WriteLine("What would you like to do?");
-
             try
             {
                 if (string.IsNullOrEmpty(RunMode))
@@ -87,9 +86,7 @@ namespace SPOUtilities
                 Console.WriteLine("Server side error occurred: {0} \n{1} " + serverEx.Message + serverEx.InnerException);
                 throw serverEx;
             }
-
         }
-
 
         static ClientContext GetUserContext(string siteUrl, string userName, string password)
         {
@@ -101,34 +98,27 @@ namespace SPOUtilities
                 {
                     securePassword.AppendChar(c);
                 }
-
                 var spoCredentials = new SharePointOnlineCredentials(userName, securePassword);
                 var spoContext = new ClientContext(siteUrl);
-
                 // Add User Agent information to context object to avoid throttling, 
                 //  per guidance here -> https://docs.microsoft.com/en-us/sharepoint/dev/general-development/how-to-avoid-getting-throttled-or-blocked-in-sharepoint-online#how-to-decorate-your-http-traffic-to-avoid-throttling
                 spoContext.ExecutingWebRequest += delegate (object sender, WebRequestEventArgs e)
                 {
                     e.WebRequestExecutor.WebRequest.UserAgent = "NONISV|KiranKakanur|SPOUtilities/1.0";
                 };
-
                 spoContext.Credentials = spoCredentials;
                 return spoContext;
-
             }
-
             catch (ClientRequestException clientEx)
             {
                 Console.WriteLine("Client side error occurred: {0} \n{1} " + clientEx.Message + clientEx.InnerException);
                 throw clientEx;
             }
-
             catch (ServerException serverEx)
             {
                 Console.WriteLine("Server side error occurred: {0} \n{1} " + serverEx.Message + serverEx.InnerException);
                 throw serverEx;
             }
-
         }
 
         static void EnableVersioningInDocLib(string siteUrl, string userName, string userPassword)
@@ -148,36 +138,37 @@ namespace SPOUtilities
                 context.Load(documentslist);
                 context.ExecuteQuery();
 
-                if (documentslist.EnableVersioning && !documentslist.EnableMinorVersions)
-                {
-                    documentslist.EnableMinorVersions = true;
+                // enable versioning if it isn't enabled
+                if (!documentslist.EnableVersioning) { documentslist.EnableVersioning = true; documentslist.Update(); context.ExecuteQuery(); }
+
+                // enable minor versions if it isn't enabled
+                if (!documentslist.EnableMinorVersions) { documentslist.EnableMinorVersions = true; ; documentslist.Update(); context.ExecuteQuery(); }
+
+                // set 5 major versions and retain drafts for 2 major versions
+                if (documentslist.EnableVersioning && documentslist.EnableMinorVersions)
+                {                    
                     documentslist.MajorVersionLimit = 5;
                     documentslist.MajorWithMinorVersionsLimit = 2;
-
                     documentslist.Update();
                     context.ExecuteQuery();
                 }
             }
-
             catch (ClientRequestException clientEx)
             {
                 Console.WriteLine("Client side error occurred: {0} \n{1} " + clientEx.Message + clientEx.InnerException);
                 throw clientEx;
             }
-
             catch (ServerException serverEx)
             {
                 Console.WriteLine("Server side error occurred: {0} \n{1} " + serverEx.Message + serverEx.InnerException);
                 throw serverEx;
             }
-
         }
 
         static void DeleteOldDocumentVersions(string siteUrl, string userName, string userPassword, string csvFilePath)
         {
             try
             {
-
                 int maxDocumentVersions = 15;//this is the maximum number of document versions that will be stored in the document library
 
                 //get client context
@@ -201,7 +192,6 @@ namespace SPOUtilities
                 {
                     context.Load(subWeb, subw => subw.Webs); //include title and all webs
                     context.ExecuteQuery();
-
                     Console.WriteLine("Processing site -> {0}", subWeb.Url);
 
                     // Loop through all webs in subwebs
@@ -209,14 +199,12 @@ namespace SPOUtilities
                     {
                         context.Load(subsubWeb, subsubw => subsubw.Title); //include title
                         context.ExecuteQuery();
-
                         Console.WriteLine("Processing site -> {0}", subsubWeb.Url);
 
                         //get list
                         List list = subsubWeb.Lists.GetByTitle("Documents");
                         context.Load(list);
                         context.ExecuteQuery();
-
 
                         //get all documents in the list
                         ListItemCollection collListItem = list.GetItems(camlQuery);
@@ -226,7 +214,6 @@ namespace SPOUtilities
                            item => item.Id,
                            item => item["Title"],
                            item => item["FileRef"]));
-
                         context.ExecuteQuery();
 
                         if (collListItem.Count > 0)
@@ -279,13 +266,11 @@ namespace SPOUtilities
                 //Write docs info to CSV file
                 System.IO.File.AppendAllText(csvFilePath, docsCSVFile.ToString());
             }
-
             catch (ClientRequestException clientEx)
             {
                 Console.WriteLine("Client side error occurred: {0} \n{1} " + clientEx.Message + clientEx.InnerException);
                 throw clientEx;
             }
-
             catch (ServerException serverEx)
             {
                 Console.WriteLine("Server side error occurred: {0} \n{1} " + serverEx.Message + serverEx.InnerException);
@@ -295,7 +280,6 @@ namespace SPOUtilities
 
         static void GetLastModifiedInfo(string siteUrl, string userName, string userPassword, string csvFilePath)
         {
-
             try
             {
                 //get client context
@@ -315,7 +299,6 @@ namespace SPOUtilities
                 {
                     context.Load(subWeb, subw => subw.Webs); //include title and all webs
                     context.ExecuteQuery();
-
 
                     // Loop through all webs in subwebs
                     foreach (Web subsubWeb in subWeb.Webs)
@@ -349,20 +332,17 @@ namespace SPOUtilities
                 //Write docs info to CSV file
                 System.IO.File.AppendAllText(csvFilePath, lastModCSVFile.ToString());
             }
-
             catch (ClientRequestException clientEx)
             {
                 Console.WriteLine("Client side error occurred: {0} \n{1} " + clientEx.Message + clientEx.InnerException);
                 throw clientEx;
             }
-
             catch (ServerException serverEx)
             {
                 Console.WriteLine("Server side error occurred: {0} \n{1} " + serverEx.Message + serverEx.InnerException);
                 throw serverEx;
             }
         }
-
 
         static void AddListPropertyBag(string siteUrl, string userName, string userPassword)
         {
@@ -381,33 +361,35 @@ namespace SPOUtilities
                 context.Load(list, olist => olist.RootFolder, olist => olist.RootFolder.Properties);
                 context.ExecuteQuery();
 
-                //set property bag in list
+                // get property bag
                 var listProperties = list.RootFolder.Properties;
-                listProperties["IsSharePointOnlineAwesome"] = "Yes";
-                listProperties["DoYouLiveCloseToTheMoon"] = "No";
 
+                //check if property bag that we are setting exists. if no, set it. if yes, delete existing and add it
+                var pValue1 = list.RootFolder.Properties["IsSharePointOnlineAwesome"]; // get property value
+                if(pValue1 == null) { listProperties["IsSharePointOnlineAwesome"] = "Yes"; } // set property value
+
+                var pValue2 = list.RootFolder.Properties["DoYouLiveCloseToTheMoon"]; //get property value
+                if (pValue2 == null) { listProperties["DoYouLiveCloseToTheMoon"] = "No"; } // set property value
+                
                 list.RootFolder.Update();
                 context.ExecuteQuery();
 
                 //read the property bag value
-                var pValue1 = list.RootFolder.Properties["IsSharePointOnlineAwesome"]; //get property value
-                var pValue2 = list.RootFolder.Properties["DoYouLiveCloseToTheMoon"]; //get property value
+                pValue1 = list.RootFolder.Properties["IsSharePointOnlineAwesome"]; // get property value
+                pValue2 = list.RootFolder.Properties["DoYouLiveCloseToTheMoon"]; // get property value
                 Console.WriteLine("IsSharePointOnlineAwesome = {0}", pValue1);
                 Console.WriteLine("DoYouLiveCloseToTheMoon = {0}", pValue2);
             }
-
             catch (ClientRequestException clientEx)
             {
                 Console.WriteLine("Client side error occurred: {0} \n{1} " + clientEx.Message + clientEx.InnerException);
                 throw clientEx;
             }
-
             catch (ServerException serverEx)
             {
                 Console.WriteLine("Server side error occurred: {0} \n{1} " + serverEx.Message + serverEx.InnerException);
                 throw serverEx;
             }
         }
-
     }
 }
