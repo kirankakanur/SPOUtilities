@@ -18,3 +18,4 @@ C:\Users\kkakanur\Documents\Visual Studio 2017\Projects\SPOUtilities\SPOUtilitie
 C:\Users\kkakanur\Documents\Visual Studio 2017\Projects\SPOUtilities\SPOUtilities\bin\Debug\Microsoft.SharePoint.Client.WorkflowServices.dll
 C:\Users\kkakanur\Documents\Visual Studio 2017\Projects\SPOUtilities\SPOUtilities\obj\Debug\SPOUtilities.exe
 C:\Users\kkakanur\Documents\Visual Studio 2017\Projects\SPOUtilities\SPOUtilities\obj\Debug\SPOUtilities.pdb
+C:\Users\kkakanur\Documents\Visual Studio 2017\Projects\SPOUtilities\SPOUtilities\obj\Debug\SPOUtilities.csprojResolveAssemblyReference.cache

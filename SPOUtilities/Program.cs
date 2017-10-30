@@ -1,13 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using System.Security;
 using System.Configuration;
-using System.IO;
 using Microsoft.SharePoint.Client;
 using Microsoft.SharePoint.Client.UserProfiles;
+using Microsoft.SharePoint.Client.Taxonomy;
 
 namespace SPOUtilities
 {
@@ -41,6 +39,7 @@ namespace SPOUtilities
                     Console.WriteLine("3 - Get Last Modified Information from Site and Document Library");
                     Console.WriteLine("4 - Add Property Bag values to a List and retrieve them");
                     Console.WriteLine("5 - Update and Retrieve User Profile Properties");
+                    Console.WriteLine("6 - Create Terms in Term Store");
                     Console.WriteLine("");
                     Console.WriteLine("Enter a number from the above list and then click Enter:");
                     RunMode = Console.ReadLine();
@@ -71,6 +70,10 @@ namespace SPOUtilities
 
                         case "5":
                             GetUserProfileProperties(siteUrl, userName, password);
+                            break;
+
+                        case "6":
+                            CreateTermsInTermStore(siteUrl, userName, password);
                             break;
                     }
                 }
@@ -152,7 +155,7 @@ namespace SPOUtilities
 
                 // set 5 major versions and retain drafts for 2 major versions
                 if (documentslist.EnableVersioning && documentslist.EnableMinorVersions)
-                {                    
+                {
                     documentslist.MajorVersionLimit = 5;
                     documentslist.MajorWithMinorVersionsLimit = 2;
                     documentslist.Update();
@@ -372,11 +375,11 @@ namespace SPOUtilities
 
                 //check if property bag that we are setting exists. if no, set it. if yes, delete existing and add it
                 var pValue1 = list.RootFolder.Properties["IsSharePointOnlineAwesome"]; // get property value
-                if(pValue1 == null) { listProperties["IsSharePointOnlineAwesome"] = "Yes"; } // set property value
+                if (pValue1 == null) { listProperties["IsSharePointOnlineAwesome"] = "Yes"; } // set property value
 
                 var pValue2 = list.RootFolder.Properties["DoYouLiveCloseToTheMoon"]; //get property value
                 if (pValue2 == null) { listProperties["DoYouLiveCloseToTheMoon"] = "No"; } // set property value
-                
+
                 list.RootFolder.Update();
                 context.ExecuteQuery();
 
@@ -413,7 +416,7 @@ namespace SPOUtilities
                 skills.Add("SharePoint");
                 skills.Add("CSOM");
                 skills.Add("JavaScript");
-                
+
 
                 // Get the PeopleManager object and then get the target user's properties.
                 PeopleManager peopleManager = new PeopleManager(context);
@@ -427,8 +430,8 @@ namespace SPOUtilities
                 context.ExecuteQuery();
 
                 // Get properties
-                PersonProperties personProperties = peopleManager.GetPropertiesFor(accountName);                
-                
+                PersonProperties personProperties = peopleManager.GetPropertiesFor(accountName);
+
                 // properties of the personProperties object.
                 context.Load(personProperties, p => p.AccountName, p => p.UserProfileProperties);
                 context.ExecuteQuery();
@@ -454,6 +457,54 @@ namespace SPOUtilities
 
 
 
+        }
+
+        // NOTE: The user account referenced in the SPOUserName setting in App.Config file must be a Term Store Administrator 
+        // in order to to create Terms in Term Store
+        // This is granted in the SharePoint Admin site (for example:https://<yourtenant>-admin.sharepoint.com/_layouts/15/termstoremanager.aspx)
+        static void CreateTermsInTermStore(string siteUrl, string userName, string userPassword)
+        {
+            try
+            {
+                //get client context
+                ClientContext context = GetUserContext(siteUrl, userName, userPassword);
+
+                TaxonomySession taxSession = TaxonomySession.GetTaxonomySession(context);
+                context.Load(taxSession);
+                context.ExecuteQuery();
+
+
+                if (taxSession != null)
+                {
+                    TermStore termStore = taxSession.GetDefaultSiteCollectionTermStore();
+                    if (termStore != null)
+                    {
+                        //
+                        // Create group, termset, and terms.
+                        //
+                        TermGroup myGroup = termStore.CreateGroup("Custom", Guid.NewGuid());
+                        TermSet myTermSet = myGroup.CreateTermSet("Countries", Guid.NewGuid(), 1033);
+                        myTermSet.CreateTerm("United States of America", 1033, Guid.NewGuid());
+                        myTermSet.CreateTerm("Canada", 1033, Guid.NewGuid());
+                        myTermSet.CreateTerm("Mexico", 1033, Guid.NewGuid());
+                        myTermSet.CreateTerm("India", 1033, Guid.NewGuid());
+                        myTermSet.CreateTerm("Thailand", 1033, Guid.NewGuid());
+                        myTermSet.CreateTerm("Australia", 1033, Guid.NewGuid());
+
+                        context.ExecuteQuery();
+                    }
+                }
+            }
+            catch (ClientRequestException clientEx)
+            {
+                Console.WriteLine("Client side error occurred: {0} \n{1} " + clientEx.Message + clientEx.InnerException);
+                throw clientEx;
+            }
+            catch (ServerException serverEx)
+            {
+                Console.WriteLine("Server side error occurred: {0} \n{1} " + serverEx.Message + serverEx.InnerException);
+                throw serverEx;
+            }
         }
     }
 }

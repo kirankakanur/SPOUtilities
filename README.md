@@ -11,6 +11,7 @@ As of now, it provides the following utilities for managing your SharePoint Onli
 - Get Last Modified Information from all Sites and "Document" Library in a Site Collection. This recurses through all Webs. Log Info is written to a CSV file.
 - Set property bag values at list level, and then retrieve the property bag values.
 - Update single value (AboutMe), multi value (SPS-Skills) fields in user profile, and retrieve all user profile properties for a given user account.
+- Create Group, Term Set, and Terms in Term Store.
 
 I will be adding more utilities, and will share them.
 
