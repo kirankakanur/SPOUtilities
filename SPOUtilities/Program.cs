@@ -7,6 +7,7 @@ using System.Security;
 using System.Configuration;
 using System.IO;
 using Microsoft.SharePoint.Client;
+using Microsoft.SharePoint.Client.UserProfiles;
 
 namespace SPOUtilities
 {
@@ -39,6 +40,7 @@ namespace SPOUtilities
                     Console.WriteLine("2 - Delete Old Document Versions in Document Library");
                     Console.WriteLine("3 - Get Last Modified Information from Site and Document Library");
                     Console.WriteLine("4 - Add Property Bag values to a List and retrieve them");
+                    Console.WriteLine("5 - Update and Retrieve User Profile Properties");
                     Console.WriteLine("");
                     Console.WriteLine("Enter a number from the above list and then click Enter:");
                     RunMode = Console.ReadLine();
@@ -65,6 +67,10 @@ namespace SPOUtilities
 
                         case "4":
                             AddListPropertyBag(siteUrl, userName, password);
+                            break;
+
+                        case "5":
+                            GetUserProfileProperties(siteUrl, userName, password);
                             break;
                     }
                 }
@@ -390,6 +396,64 @@ namespace SPOUtilities
                 Console.WriteLine("Server side error occurred: {0} \n{1} " + serverEx.Message + serverEx.InnerException);
                 throw serverEx;
             }
+        }
+
+        static void GetUserProfileProperties(string siteUrl, string userName, string userPassword)
+        {
+            try
+            {
+                // get client context
+                ClientContext context = GetUserContext(siteUrl, userName, userPassword);
+
+                // user account name in Claims format
+                string accountName = "i:0#.f|membership|kiran@durianland.onmicrosoft.com";
+
+                // skills values
+                List<string> skills = new List<string>();
+                skills.Add("SharePoint");
+                skills.Add("CSOM");
+                skills.Add("JavaScript");
+                
+
+                // Get the PeopleManager object and then get the target user's properties.
+                PeopleManager peopleManager = new PeopleManager(context);
+
+                // set single value profile property
+                peopleManager.SetSingleValueProfileProperty(accountName, "AboutMe", "I love SharePoint!");
+
+                // set multi value profile property
+                peopleManager.SetMultiValuedProfileProperty(accountName, "SPS-Skills", skills);
+
+                context.ExecuteQuery();
+
+                // Get properties
+                PersonProperties personProperties = peopleManager.GetPropertiesFor(accountName);                
+                
+                // properties of the personProperties object.
+                context.Load(personProperties, p => p.AccountName, p => p.UserProfileProperties);
+                context.ExecuteQuery();
+
+                foreach (var property in personProperties.UserProfileProperties)
+                {
+                    Console.WriteLine(string.Format("{0}: {1}",
+                        property.Key.ToString(), property.Value.ToString()));
+                }
+
+            }
+
+            catch (ClientRequestException clientEx)
+            {
+                Console.WriteLine("Client side error occurred: {0} \n{1} " + clientEx.Message + clientEx.InnerException);
+                throw clientEx;
+            }
+            catch (ServerException serverEx)
+            {
+                Console.WriteLine("Server side error occurred: {0} \n{1} " + serverEx.Message + serverEx.InnerException);
+                throw serverEx;
+            }
+
+
+
         }
     }
 }
