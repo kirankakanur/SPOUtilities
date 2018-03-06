@@ -6,6 +6,11 @@ using System.Configuration;
 using Microsoft.SharePoint.Client;
 using Microsoft.SharePoint.Client.UserProfiles;
 using Microsoft.SharePoint.Client.Taxonomy;
+using Microsoft.Office.Server.Search.Administration;
+using Microsoft.SharePoint;
+using Microsoft.SharePoint.Client.Publishing.Navigation;
+using Microsoft.SharePoint.Client.Publishing;
+using System.Linq;
 
 namespace SPOUtilities
 {
@@ -40,6 +45,8 @@ namespace SPOUtilities
                     Console.WriteLine("4 - Add Property Bag values to a List and retrieve them");
                     Console.WriteLine("5 - Update and Retrieve User Profile Properties");
                     Console.WriteLine("6 - Create Terms in Term Store");
+                    Console.WriteLine("7 - Work with Managed Properties in Search schema");
+                    Console.WriteLine("8 - Get Friendly URLs");
                     Console.WriteLine("");
                     Console.WriteLine("Enter a number from the above list and then click Enter:");
                     RunMode = Console.ReadLine();
@@ -75,6 +82,10 @@ namespace SPOUtilities
                         case "6":
                             CreateTermsInTermStore(siteUrl, userName, password);
                             break;
+
+                        case "7":
+                            GetFriendlyUrl(siteUrl, userName, password);
+                            break;
                     }
                 }
                 else
@@ -96,6 +107,103 @@ namespace SPOUtilities
                 throw serverEx;
             }
         }
+
+        private static void GetFriendlyUrl(string siteUrl, string userName, string password)
+        {
+
+            //list for saving the urls
+            List<string> retVal = new List<string>();
+
+            // get client context
+            ClientContext context = GetUserContext(siteUrl, userName, password);
+
+            // get web
+            Web web = context.Web;
+            context.Load(web, w => w.Url);
+            context.ExecuteQuery();
+
+            //check if the current web is a publishing web
+            PublishingWeb pubWeb = PublishingWeb.GetPublishingWeb(context, web);
+            context.Load(pubWeb);
+            context.ExecuteQuery();
+
+            if (pubWeb != null)
+            {
+                //retrieve the pages list
+                List pagesList = pubWeb.Web.Lists.GetByTitle("Pages");
+                context.Load(pubWeb);
+                context.ExecuteQuery();
+
+                // build CAML query to get all items in the Pages library
+                CamlQuery camlQuery = new CamlQuery();
+                camlQuery.ViewXml = "<View Scope='RecursiveAll'></View>";
+
+                //get all documents in the list
+                ListItemCollection collListItem = pagesList.GetItems(camlQuery);
+
+                context.Load(collListItem,
+                items => items.Include(
+                   item => item.Id,
+                   item => item["Title"],
+                   item => item["FileRef"])); //FileRef is the relative Url of the page
+                context.ExecuteQuery();
+
+                // get navigation terms
+                var navigationTermSet = TaxonomyNavigation.GetTermSetForWeb(context, web, "GlobalNavigationTaxonomyProvider", true);
+                var allNavigationTerms = navigationTermSet.GetAllTerms();
+
+                context.Load(allNavigationTerms, t => t.Include(
+                    i => i.TargetUrl,
+                    i => i.LinkType,
+                    i => i.TaxonomyName,
+                    i => i.Parent));
+
+                context.ExecuteQuery();
+
+                // loop thru' all items in the 'Pages' library
+                if (collListItem.Count > 0)
+                {
+                    foreach (ListItem oListItem in collListItem)
+                    {
+                        //get list item
+                        context.Load(oListItem);
+                        context.ExecuteQuery();
+
+
+                        var navigationTermsForPage = allNavigationTerms.Where(
+                            t => t.LinkType == NavigationLinkType.FriendlyUrl &&
+                            t.TargetUrl.Value.Contains(oListItem["FileRef"].ToString()));
+
+                        //context.Web.EnsureProperty(w => w.Url);
+
+                        foreach (var navTerm in navigationTermsForPage)
+                        {
+                            var pageUrl = "";
+
+                            context.Load(navTerm);
+
+                            pageUrl = InsertUrlRecursive(navTerm, pageUrl);
+
+                            Console.WriteLine($"{web.Url}{pageUrl}");
+                        }
+                    }
+                }
+
+            }
+        }
+
+        private static string InsertUrlRecursive(NavigationTerm navTerm, string pageUrl)
+        {
+            pageUrl = pageUrl.Insert(0, $"/{navTerm.TaxonomyName}");
+
+            if (navTerm.Parent.ServerObjectIsNull == false)
+            {
+                pageUrl = InsertUrlRecursive(navTerm.Parent, pageUrl);
+            }
+            return pageUrl;
+        }
+
+
 
         static ClientContext GetUserContext(string siteUrl, string userName, string password)
         {
@@ -506,5 +614,53 @@ namespace SPOUtilities
                 throw serverEx;
             }
         }
+
+
+        //static void WorkWithManagedProperties(string siteUrl, string userName, string userPassword)
+        //{
+        //    try
+        //    {
+        //        //get client context
+        //        ClientContext context = GetUserContext(siteUrl, userName, userPassword);
+
+        //        //get Site
+        //        Site site = context.Site;
+
+        //        //Microsoft.SharePoint.Client.Search.Administration.SearchObjectLevel.Ssa
+
+
+        //        SearchServiceApplication ssa = new SearchServiceApplication();
+        //        SearchServiceApplicationProxy ssaproxy = new SearchServiceApplicationProxy();
+
+
+        //        Guid guidTenant = new Guid("8d66b737-01b6-4190-907e-b5da9591faae"); //follow steps in this blog http://www.ktskumar.com/2017/01/access-sharepoint-online-using-postman/ to get tenant Id from your SPO environment
+        //        Guid guidSiteCollection = new Guid("34b15b51-1499-4bf2-83e1-bfbbcd84a9ed"); //run this to get the site collection GUID https://<yourSPOSite>.sharepoint.com/sites/<sitename>/_api/Site from your SPO environment
+        //        //Schema schema = new Schema(ssa, guidTenant, guidSiteCollection);
+
+
+        //        SearchContext contextSearch = SearchContext.GetContext(ssa);
+        //        Schema schema = new Schema(contextSearch);
+
+        //        //Schema sspSchema = new Schema(SearchContext.GetContext(ssa, false));
+
+        //        ManagedPropertyCollection collManagedProperties = schema.AllManagedProperties;
+
+        //        ManagedProperty mpViewsLastMonths1 = collManagedProperties["viewslastmonths1"];
+
+        //    }
+        //    catch (ClientRequestException clientEx)
+        //    {
+        //        Console.WriteLine("Client side error occurred: {0} \n{1} " + clientEx.Message + clientEx.InnerException);
+        //        throw clientEx;
+        //    }
+        //    catch (ServerException serverEx)
+        //    {
+        //        Console.WriteLine("Server side error occurred: {0} \n{1} " + serverEx.Message + serverEx.InnerException);
+        //        throw serverEx;
+        //    }
+        //}
     }
+
 }
+
+
